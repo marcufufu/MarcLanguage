@@ -125,6 +125,9 @@ if uploaded_file is not None:
     detected_text = []
     color_counts = {}  # To keep track of detected letters and their counts
 
+    # Use a set to track letters that have already been added
+    unique_letters = set()
+
     # Process each pixel in the image
     for y in range(height):
         for x in range(width):
@@ -142,13 +145,12 @@ if uploaded_file is not None:
                     matched_letter = letter
                     break
 
-            if matched_letter:
-                if matched_letter not in color_counts:
-                    color_counts[matched_letter] = 0
-                color_counts[matched_letter] += 1
+            if matched_letter and matched_letter not in unique_letters:
+                unique_letters.add(matched_letter)  # Only add unique letters
+                detected_text.append(matched_letter)
 
     # Generate detected text ensuring letters are not repeated
-    output_text = ''.join([letter for letter, count in color_counts.items() if count > 0])
+    output_text = ''.join(detected_text)
 
     # Display the detected text
     st.subheader("Detected Text:")
