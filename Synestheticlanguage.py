@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 import streamlit as st
 import numpy as np
 import io
+from skimage.measure import label, regionprops
 
 # Load the Excel file into a DataFrame
 file_path = "Synesthesia (6).xlsx"  # Ensure this file is in the same directory in your repo
@@ -122,19 +123,15 @@ if uploaded_file is not None:
     image_array = np.array(image)
     height, width, _ = image_array.shape
 
-    detected_text = []
-    color_counts = {}  # To keep track of detected letters and their counts
+    # Create a mask for colored areas
+    mask = np.zeros((height, width), dtype=np.uint8)
 
-    # Use a set to track letters that have already been added
-    unique_letters = set()
-
-    # Process each pixel in the image
+    # Detect blobs by applying a threshold based on color similarity
     for y in range(height):
         for x in range(width):
             r, g, b = image_array[y, x]
             hex_color = f'#{r:02x}{g:02x}{b:02x}'  # Convert to hex format
-            matched_letter = None
-            
+
             # Check for matches within the color tolerance
             for hex_key, letter in reverse_color_dict.items():
                 if is_color_similar(
@@ -142,11 +139,37 @@ if uploaded_file is not None:
                     tuple(int(hex_key[i:i+2], 16) for i in (1, 3, 5)), 
                     tolerance=30
                 ):
+                    mask[y, x] = 1  # Mark this pixel as part of a blob
+                    break
+
+    # Label connected regions in the mask
+    labeled_mask = label(mask)
+    regions = regionprops(labeled_mask)
+
+    detected_text = []
+
+    # Process each region to determine the detected text
+    for region in regions:
+        if region.area > 10:  # Consider only large enough regions
+            # Get the centroid of the region
+            y, x = region.centroid
+
+            # Get the color of the pixel at the centroid
+            centroid_color = image_array[int(y), int(x)]
+            hex_color = f'#{centroid_color[0]:02x}{centroid_color[1]:02x}{centroid_color[2]:02x}'
+
+            # Map the color back to the corresponding letter
+            matched_letter = None
+            for hex_key, letter in reverse_color_dict.items():
+                if is_color_similar(
+                    centroid_color, 
+                    tuple(int(hex_key[i:i+2], 16) for i in (1, 3, 5)), 
+                    tolerance=30
+                ):
                     matched_letter = letter
                     break
 
-            if matched_letter and matched_letter not in unique_letters:
-                unique_letters.add(matched_letter)  # Only add unique letters
+            if matched_letter:
                 detected_text.append(matched_letter)
 
     # Generate detected text ensuring letters are not repeated
