@@ -22,8 +22,8 @@ text = st.text_area("Enter text:", height=200)
 
 # Generate Image Section
 if st.button("Generate Image"):
-    block_size = 150  # Diameter of each color circle
-    spacing = 10  # Space between circles
+    block_size = 150
+    spacing = 10
     max_chars_per_line = 40
     line_height = block_size + spacing
 
@@ -104,19 +104,34 @@ if uploaded_file is not None:
     detected_text = []
     y_offset = 0
 
+    # Debugging list to output detected colors and matches
+    debug_output = []
+
     while y_offset + block_size <= height:
         x_offset = 0
         line_text = []
         while x_offset + block_size <= width:
+            # Extract a block and compute its average color
             block = image_array[y_offset:y_offset + block_size, x_offset:x_offset + block_size]
             avg_color = block.reshape(-1, 3).mean(axis=0).astype(int)
             hex_color = f'#{avg_color[0]:02x}{avg_color[1]:02x}{avg_color[2]:02x}'
-            if hex_color in reverse_color_dict:
-                line_text.append(reverse_color_dict[hex_color])
+
+            # Check if the hex color is in the reverse dictionary
+            matched_char = reverse_color_dict.get(hex_color, None)
+            line_text.append(matched_char if matched_char else "?")  # Append "?" if no match
+
+            # Append debug information
+            debug_output.append(f"Detected color: {hex_color}, Matched char: {matched_char}")
+
             x_offset += block_size + spacing
         detected_text.append("".join(line_text))
         y_offset += block_size + spacing
 
+    # Display debug output to help diagnose color matching
+    st.subheader("Debug Output for Detected Colors and Matches:")
+    st.write("\n".join(debug_output))
+
+    # Join detected lines to form the output text
     output_text = '\n'.join(detected_text)
 
     st.subheader("Detected Text:")
