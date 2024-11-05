@@ -17,9 +17,8 @@ color_dict = pd.Series(df[hex_column].values, index=df[letter_column].astype(str
 # Create reverse color dictionary for decoding
 reverse_color_dict = {v: k for k, v in color_dict.items()}
 
-# Function to check color similarity
-def colors_are_similar(color1, color2, tolerance=30):
-    """Check if two RGB colors are similar within a given tolerance."""
+# Define a function for checking color tolerance
+def is_color_similar(color1, color2, tolerance=30):
     return all(abs(c1 - c2) <= tolerance for c1, c2 in zip(color1, color2))
 
 # Streamlit interface
@@ -76,9 +75,9 @@ if st.button("Generate Image"):
             if char.isalnum():  # Check if character is alphanumeric
                 hex_color = color_dict.get(char.upper(), "#FFFFFF")
                 if len(hex_color) == 7 and hex_color.startswith("#"):
-                    rgb_color = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
+                    rgb_color = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))  # Adjust index for '#'
                 else:
-                    rgb_color = (255, 255, 255)
+                    rgb_color = (255, 255, 255)  # Default to white if hex_color is invalid
 
                 draw.ellipse(
                     [x_offset, y_offset, x_offset + block_size, y_offset + block_size],
@@ -91,8 +90,8 @@ if st.button("Generate Image"):
                 text_y = y_offset + (block_size - (bbox[3] - bbox[1])) // 2
                 draw.text((text_x, text_y), char, fill="black", font=font)
 
-            x_offset += block_size + spacing
-        y_offset += line_height
+            x_offset += block_size + spacing  # Move to the next circle position
+        y_offset += line_height  # Move down for the next line
 
     # Display the generated image
     st.image(image, caption='Generated Synesthetic Image')
@@ -100,7 +99,7 @@ if st.button("Generate Image"):
     # Create a BytesIO object to save the image in memory
     img_buffer = io.BytesIO()
     image.save(img_buffer, format='PNG')
-    img_buffer.seek(0)
+    img_buffer.seek(0)  # Move to the beginning of the BytesIO buffer
 
     # Add a download button
     st.download_button(
@@ -124,35 +123,32 @@ if uploaded_file is not None:
     height, width, _ = image_array.shape
 
     detected_text = []
-    color_count = {}  # Dictionary to count occurrences of each character
+    color_counts = {}  # To keep track of detected letters and their counts
 
     # Process each pixel in the image
     for y in range(height):
         for x in range(width):
             r, g, b = image_array[y, x]
-            current_color = (r, g, b)
-            matched = False
+            hex_color = f'#{r:02x}{g:02x}{b:02x}'  # Convert to hex format
+            matched_letter = None
             
-            # Check against each defined color in the reverse color dictionary
-            for defined_hex in reverse_color_dict.keys():
-                defined_rgb = tuple(int(defined_hex[i:i+2], 16) for i in (1, 3, 5))
-                if colors_are_similar(current_color, defined_rgb):
-                    detected_char = reverse_color_dict[defined_hex]
-                    detected_text.append(detected_char)  # Append corresponding letter
-                    color_count[detected_char] = color_count.get(detected_char, 0) + 1  # Count occurrences
-                    matched = True
+            # Check for matches within the color tolerance
+            for hex_key, letter in reverse_color_dict.items():
+                if is_color_similar(
+                    (r, g, b), 
+                    tuple(int(hex_key[i:i+2], 16) for i in (1, 3, 5)), 
+                    tolerance=30
+                ):
+                    matched_letter = letter
                     break
-            
-            # If no match found, you can decide to add a placeholder or ignore
-            if not matched:
-                detected_text.append('')
 
-    # Filter detected text based on pixel count
-    output_text = ''
-    pixel_threshold = 5  # Define the threshold for character appearance
-    for char, count in color_count.items():
-        if count >= pixel_threshold:  # Only add characters that exceed the threshold
-            output_text += char
+            if matched_letter:
+                if matched_letter not in color_counts:
+                    color_counts[matched_letter] = 0
+                color_counts[matched_letter] += 1
+
+    # Generate detected text ensuring letters are not repeated
+    output_text = ''.join([letter for letter, count in color_counts.items() if count > 0])
 
     # Display the detected text
     st.subheader("Detected Text:")
