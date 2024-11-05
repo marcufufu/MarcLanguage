@@ -44,9 +44,11 @@ if st.button("Generate Image"):
 
     num_lines = len(lines)
 
-    # Calculate image dimensions based on the number of lines
-    width = (block_size + spacing) * max_chars_per_line
-    height = line_height * num_lines
+    # Calculate image dimensions based on the number of lines and actual content
+    # Width is determined by the longest line
+    max_line_length = max(len(line) for line in lines)
+    width = (block_size + spacing) * max_line_length - spacing  # Adjust width to actual content
+    height = line_height * num_lines - spacing  # Adjust height to actual content
 
     # Create a blank image
     image = Image.new("RGB", (width, height), "white")
