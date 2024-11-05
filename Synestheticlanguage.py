@@ -12,8 +12,8 @@ df = pd.read_excel(file_path)
 letter_column = 'Letter'
 hex_column = 'HEX'
 
-# Create the color dictionary
-color_dict = pd.Series(df[hex_column].values, index=df[letter_column].astype(str).str.upper()).to_dict()
+# Create the color dictionary, converting hex codes to lowercase for consistency
+color_dict = pd.Series(df[hex_column].str.lower().values, index=df[letter_column].astype(str).str.upper()).to_dict()
 reverse_color_dict = {v: k for k, v in color_dict.items()}
 
 # Streamlit interface
@@ -60,7 +60,7 @@ if st.button("Generate Image"):
         x_offset = 0
         for char in line:
             if char.isalnum():
-                hex_color = color_dict.get(char.upper(), "#FFFFFF")
+                hex_color = color_dict.get(char.upper(), "#FFFFFF").lower()  # Ensure lowercase
                 rgb_color = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
                 draw.ellipse(
                     [x_offset, y_offset, x_offset + block_size, y_offset + block_size],
@@ -104,34 +104,28 @@ if uploaded_file is not None:
     detected_text = []
     y_offset = 0
 
-    # Debugging list to output detected colors and matches
     debug_output = []
 
     while y_offset + block_size <= height:
         x_offset = 0
         line_text = []
         while x_offset + block_size <= width:
-            # Extract a block and compute its average color
             block = image_array[y_offset:y_offset + block_size, x_offset:x_offset + block_size]
             avg_color = block.reshape(-1, 3).mean(axis=0).astype(int)
-            hex_color = f'#{avg_color[0]:02x}{avg_color[1]:02x}{avg_color[2]:02x}'
+            hex_color = f'#{avg_color[0]:02x}{avg_color[1]:02x}{avg_color[2]:02x}'.lower()  # Convert to lowercase
 
-            # Check if the hex color is in the reverse dictionary
             matched_char = reverse_color_dict.get(hex_color, None)
-            line_text.append(matched_char if matched_char else "?")  # Append "?" if no match
+            line_text.append(matched_char if matched_char else "?")
 
-            # Append debug information
             debug_output.append(f"Detected color: {hex_color}, Matched char: {matched_char}")
 
             x_offset += block_size + spacing
         detected_text.append("".join(line_text))
         y_offset += block_size + spacing
 
-    # Display debug output to help diagnose color matching
     st.subheader("Debug Output for Detected Colors and Matches:")
     st.write("\n".join(debug_output))
 
-    # Join detected lines to form the output text
     output_text = '\n'.join(detected_text)
 
     st.subheader("Detected Text:")
