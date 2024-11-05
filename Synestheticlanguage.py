@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 import streamlit as st
 
 # Load the Excel file into a DataFrame
-file_path = "/Users/marcusfield/Synesthesia (6).xlsx"  # Update the path to your Excel file
+file_path = "Synesthesia (6).xlsx"  # Update the path to your Excel file
 df = pd.read_excel(file_path)
 
 # Column names in the Excel file
