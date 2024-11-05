@@ -23,7 +23,7 @@ text = st.text_area("Enter text:", height=200)
 # Generate Image Section
 if st.button("Generate Image"):
     block_size = 150
-    spacing = 20
+    spacing = 30
     max_chars_per_line = 40
     line_height = block_size + spacing
 
