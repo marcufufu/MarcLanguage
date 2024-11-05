@@ -1,16 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-
-# In[71]:
-
-
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 import streamlit as st
+import io
 
 # Load the Excel file into a DataFrame
-file_path = "Synesthesia (6).xlsx"  # Update the path to your Excel file
+file_path = "Synesthesia (6).xlsx"  # Ensure this file is in the same directory in your repo
 df = pd.read_excel(file_path)
 
 # Column names in the Excel file
@@ -90,11 +84,18 @@ if st.button("Generate Image"):
             x_offset += block_size + spacing  # Move to the next circle position
         y_offset += line_height  # Move down for the next line
 
-    # Save the image
-    output_path = "output_image.png"  # Specify your desired output path
-    image.save(output_path)
-    st.image(image, caption='Generated Synesthetic Image')  # Display the generated image
+    # Display the generated image
+    st.image(image, caption='Generated Synesthetic Image')
 
+    # Create a BytesIO object to save the image in memory
+    img_buffer = io.BytesIO()
+    image.save(img_buffer, format='PNG')
+    img_buffer.seek(0)  # Move to the beginning of the BytesIO buffer
 
-
-
+    # Add a download button
+    st.download_button(
+        label="Download Image",
+        data=img_buffer,
+        file_name="output_image.png",
+        mime="image/png"
+    )
