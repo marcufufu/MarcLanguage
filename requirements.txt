@@ -2,3 +2,4 @@ pandas
 pillow
 openpyxl
 streamlit
+scikit-image
