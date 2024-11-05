@@ -1,6 +1,7 @@
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 import streamlit as st
+import numpy as np
 import io
 
 # Load the Excel file into a DataFrame
@@ -13,11 +14,14 @@ hex_column = 'HEX'
 
 # Create the color dictionary
 color_dict = pd.Series(df[hex_column].values, index=df[letter_column].astype(str).str.upper()).to_dict()
+# Create reverse color dictionary for decoding
+reverse_color_dict = {v: k for k, v in color_dict.items()}
 
 # Streamlit interface
 st.title("Text to Marcus Language")
 text = st.text_area("Enter text:", height=200)  # Use text_area for multi-line input
 
+# Generate Image Section
 if st.button("Generate Image"):
     # Parameters
     block_size = 150  # Diameter of each color circle
@@ -101,3 +105,33 @@ if st.button("Generate Image"):
         file_name="output_image.png",
         mime="image/png"
     )
+
+# Image Upload Section
+uploaded_file = st.file_uploader("Upload an image with colors", type=["png", "jpg", "jpeg"])
+
+if uploaded_file is not None:
+    # Load the uploaded image
+    image = Image.open(uploaded_file)
+    image = image.convert("RGB")
+    st.image(image, caption='Uploaded Image')
+
+    # Convert the image to a NumPy array for processing
+    image_array = np.array(image)
+    height, width, _ = image_array.shape
+
+    detected_text = []
+    
+    # Process each pixel in the image
+    for y in range(height):
+        for x in range(width):
+            r, g, b = image_array[y, x]
+            hex_color = f'#{r:02x}{g:02x}{b:02x}'  # Convert to hex format
+            if hex_color in reverse_color_dict:
+                detected_text.append(reverse_color_dict[hex_color])  # Append corresponding letter
+
+    # Join the detected letters to form the output text
+    output_text = ''.join(detected_text)
+
+    # Display the detected text
+    st.subheader("Detected Text:")
+    st.write(output_text)
